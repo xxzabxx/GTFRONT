@@ -14,11 +14,12 @@ import {
   Moon, 
   Sun,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Shield
 } from 'lucide-react'
 
 const Navbar = ({ isDarkMode, setIsDarkMode }) => {
-  const { user, logout, isAuthenticated } = useAuth()
+  const { user, logout, isAuthenticated, isAdmin } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -49,6 +50,14 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                     <span>Dashboard</span>
                   </Button>
                 </Link>
+                {isAdmin() && (
+                  <Link to="/admin">
+                    <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                      <Shield className="w-4 h-4" />
+                      <span>Admin</span>
+                    </Button>
+                  </Link>
+                )}
               </div>
             )}
           </div>

@@ -20,9 +20,11 @@ import {
 } from 'lucide-react'
 
 const DashboardPage = () => {
-  const { user } = useAuth()
+  const { user, hasPermission, getTierInfo } = useAuth()
   const [marketStatus, setMarketStatus] = useState('OPEN') // OPEN, CLOSED, PRE_MARKET, AFTER_HOURS
   const [currentTime, setCurrentTime] = useState(new Date())
+
+  const tierInfo = getTierInfo()
 
   useEffect(() => {
     const timer = setInterval(() => {

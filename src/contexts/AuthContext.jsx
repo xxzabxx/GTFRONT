@@ -95,6 +95,27 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const hasPermission = (feature) => {
+    if (!user) return false
+    if (user.is_admin) return true
+    
+    const permissions = user.tier_info?.permissions || []
+    return permissions.includes(feature)
+  }
+
+  const isAdmin = () => {
+    return user?.is_admin || false
+  }
+
+  const getTierInfo = () => {
+    return user?.tier_info || {
+      tier: 'free',
+      expires: null,
+      is_active: true,
+      permissions: []
+    }
+  }
+
   const value = {
     user,
     token,
@@ -103,6 +124,9 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    hasPermission,
+    isAdmin,
+    getTierInfo,
     isAuthenticated: !!user
   }
 

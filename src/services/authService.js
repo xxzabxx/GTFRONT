@@ -76,6 +76,65 @@ class AuthService {
   async checkHealth() {
     return this.makeRequest('/api/health')
   }
+
+  // Admin methods
+  async getAdminUsers(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return this.makeRequest(`/api/admin/users?${queryString}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+  }
+
+  async getAdminStats() {
+    return this.makeRequest('/api/admin/stats', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+  }
+
+  async updateUserTier(userId, tier, expiresInDays = 30) {
+    return this.makeRequest(`/api/admin/users/${userId}/tier`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ tier, expires_in_days: expiresInDays })
+    })
+  }
+
+  async updateUserStatus(userId, isActive) {
+    return this.makeRequest(`/api/admin/users/${userId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ is_active: isActive })
+    })
+  }
+
+  async updateUserAdmin(userId, isAdmin) {
+    return this.makeRequest(`/api/admin/users/${userId}/admin`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ is_admin: isAdmin })
+    })
+  }
+
+  async getUserDetails(userId) {
+    return this.makeRequest(`/api/admin/users/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+  }
 }
 
 export const authService = new AuthService()
