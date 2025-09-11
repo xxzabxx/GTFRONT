@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://gtback-production.up.railway.app'
 
 class AuthService {
   async makeRequest(endpoint, options = {}) {
