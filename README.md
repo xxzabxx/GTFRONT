@@ -49,7 +49,7 @@ Professional day trading platform frontend built with React 18, TypeScript, Tail
 
 3. **Configure environment variables in Netlify:**
    ```
-   VITE_API_URL=https://your-backend-url.railway.app
+   VITE_API_URL=https://gtback-production.up.railway.app
    ```
 
 ## Dashboard Layout
