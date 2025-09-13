@@ -64,6 +64,24 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
 
           {/* Right side navigation */}
           <div className="flex items-center space-x-4">
+            {/* Public navigation links */}
+            {!isAuthenticated && (
+              <div className="hidden md:flex items-center space-x-1">
+                <Link to="/pricing">
+                  <Button variant="ghost" size="sm">Pricing</Button>
+                </Link>
+                <Link to="/about">
+                  <Button variant="ghost" size="sm">About</Button>
+                </Link>
+                <Link to="/resources">
+                  <Button variant="ghost" size="sm">Resources</Button>
+                </Link>
+                <Link to="/contact">
+                  <Button variant="ghost" size="sm">Contact</Button>
+                </Link>
+              </div>
+            )}
+
             {/* Theme toggle */}
             <Button
               variant="ghost"
