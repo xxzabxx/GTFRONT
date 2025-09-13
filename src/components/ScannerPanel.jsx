@@ -7,20 +7,18 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
-  TrendingUp, 
-  TrendingDown,
   Search, 
-  RefreshCw,
-  Activity,
-  DollarSign,
-  Volume2,
-  Clock,
-  Zap,
-  AlertTriangle,
+  RefreshCw, 
+  Activity, 
+  TrendingUp, 
+  Zap, 
+  BarChart3, 
+  AlertTriangle, 
+  Lock, 
   Crown,
-  Lock
+  X,
+  Volume2
 } from 'lucide-react'
-
 const ScannerPanel = ({ onSymbolSelect }) => {
   const { user, token, getTierInfo } = useAuth()
   const [scannerData, setScannerData] = useState({
@@ -31,8 +29,19 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   const [activeTab, setActiveTab] = useState('momentum')
   const [scannerStatus, setScannerStatus] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [notification, setNotification] = useState(null)
 
   const tierInfo = getTierInfo()
+
+  // Auto-dismiss notifications after 5 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   // Fetch scanner status on component mount
   useEffect(() => {
@@ -66,7 +75,9 @@ const ScannerPanel = ({ onSymbolSelect }) => {
     }
   }
 
-  const fetchScannerData = async (scannerType) => {
+  const fetchScannerData = async (scannerType, retryCount = 0) => {
+    const maxRetries = 3
+    
     setScannerData(prev => ({
       ...prev,
       [scannerType]: { ...prev[scannerType], loading: true, error: null }
@@ -99,17 +110,52 @@ const ScannerPanel = ({ onSymbolSelect }) => {
           lastUpdate: new Date(),
           criteria: data.criteria,
           limit: data.limit,
-          count: data.count
+          count: data.count,
+          retryCount: 0
         }
       }))
     } catch (error) {
+      console.error(`Scanner error for ${scannerType}:`, error)
+      
+      // Determine error type and message
+      let errorMessage = 'Failed to load scanner data'
+      let upgradeRequired = false
+      
+      if (error.message?.includes('upgrade') || error.message?.includes('premium')) {
+        upgradeRequired = true
+        errorMessage = 'Upgrade required to access this scanner'
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection.'
+      } else if (error.message?.includes('unauthorized') || error.message?.includes('401')) {
+        errorMessage = 'Session expired. Please refresh the page.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      // Auto-retry for network errors (not for auth or upgrade errors)
+      if (retryCount < maxRetries && !upgradeRequired && !error.message?.includes('unauthorized')) {
+        console.log(`Retrying ${scannerType} scanner (attempt ${retryCount + 1}/${maxRetries})`)
+        
+        // Show retry notification
+        setNotification({
+          type: 'warning',
+          message: `Retrying ${scannerType} scanner... (${retryCount + 1}/${maxRetries})`
+        })
+        
+        setTimeout(() => {
+          fetchScannerData(scannerType, retryCount + 1)
+        }, 1000 * (retryCount + 1)) // Exponential backoff
+        return
+      }
+
       setScannerData(prev => ({
         ...prev,
         [scannerType]: {
           ...prev[scannerType],
           loading: false,
-          error: error.message || 'Failed to load scanner data',
-          upgrade_required: error.message?.includes('upgrade') || error.message?.includes('premium')
+          error: errorMessage,
+          upgrade_required: upgradeRequired,
+          retryCount: retryCount
         }
       }))
     }
@@ -145,6 +191,105 @@ const ScannerPanel = ({ onSymbolSelect }) => {
     return isNaN(num) ? '0.00' : num.toFixed(2)
   }
 
+  // Skeleton loading component for better UX
+  const ScannerSkeleton = () => (
+    <div className="space-y-2">
+      {[...Array(5)].map((_, index) => (
+        <div key={index} className="p-3 border border-border rounded-lg animate-pulse">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <div className="h-4 bg-muted rounded w-16 mb-1"></div>
+              <div className="h-3 bg-muted rounded w-24"></div>
+            </div>
+            <div className="text-right">
+              <div className="h-4 bg-muted rounded w-12 mb-1"></div>
+              <div className="h-3 bg-muted rounded w-10"></div>
+            </div>
+          </div>
+          <div className="flex justify-between">
+            <div className="h-3 bg-muted rounded w-16"></div>
+            <div className="h-3 bg-muted rounded w-12"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  // Enhanced error component with retry functionality
+  const ErrorDisplay = ({ error, onRetry, upgradeRequired = false }) => (
+    <div className="text-center py-8">
+      <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
+      <p className="font-semibold text-red-500 mb-2">Scanner Error</p>
+      <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
+        {error || 'Unable to load scanner data. Please try again.'}
+      </p>
+      <div className="space-y-2">
+        {upgradeRequired ? (
+          <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600">
+            <Crown className="w-4 h-4 mr-2" />
+            Upgrade Now
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" onClick={onRetry}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+        )}
+        <div className="text-xs text-muted-foreground">
+          If the problem persists, check your connection
+        </div>
+      </div>
+    </div>
+  )
+
+  // Enhanced loading component with progress indication
+  const LoadingDisplay = ({ message = "Scanning markets..." }) => (
+    <div className="text-center text-muted-foreground py-8">
+      <div className="relative">
+        <RefreshCw className="w-8 h-8 mx-auto mb-2 animate-spin" />
+        <div className="absolute inset-0 w-8 h-8 mx-auto border-2 border-primary/20 rounded-full animate-pulse"></div>
+      </div>
+      <p className="font-medium">{message}</p>
+      <div className="text-xs mt-1">
+        Analyzing market data with Ross Cameron criteria
+      </div>
+      <div className="flex justify-center mt-3">
+        <div className="flex space-x-1">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="w-2 h-2 bg-primary rounded-full animate-bounce"
+              style={{ animationDelay: `${i * 0.1}s` }}
+            ></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  // Notification component for user feedback
+  const NotificationBanner = ({ notification, onDismiss }) => {
+    if (!notification) return null
+
+    const { type, message } = notification
+    const bgColor = type === 'error' ? 'bg-red-500/10 border-red-500/20' : 
+                   type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20' :
+                   'bg-blue-500/10 border-blue-500/20'
+    
+    const textColor = type === 'error' ? 'text-red-400' :
+                     type === 'warning' ? 'text-yellow-400' :
+                     'text-blue-400'
+
+    return (
+      <div className={`mx-4 mb-4 p-3 rounded-lg border ${bgColor} ${textColor} text-sm flex items-center justify-between`}>
+        <span>{message}</span>
+        <Button size="sm" variant="ghost" onClick={onDismiss} className="h-6 w-6 p-0">
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+    )
+  }
+
   const ScannerResults = ({ scannerType }) => {
     const data = scannerData[scannerType]
     const status = scannerStatus?.scanners[scannerType]
@@ -175,29 +320,16 @@ const ScannerPanel = ({ onSymbolSelect }) => {
     }
 
     if (data.loading) {
-      return (
-        <div className="text-center text-muted-foreground py-8">
-          <RefreshCw className="w-8 h-8 mx-auto mb-2 animate-spin" />
-          <p>Scanning markets...</p>
-        </div>
-      )
+      return <LoadingDisplay message="Scanning markets..." />
     }
 
     if (data.error) {
       return (
-        <div className="text-center py-8">
-          <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-500" />
-          <p className="text-sm text-red-500 mb-4">{data.error}</p>
-          {data.upgrade_required ? (
-            <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600">
-              Upgrade Now
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" onClick={handleRefresh}>
-              Try Again
-            </Button>
-          )}
-        </div>
+        <ErrorDisplay 
+          error={data.error}
+          onRetry={() => fetchScannerData(scannerType)}
+          upgradeRequired={data.upgrade_required}
+        />
       )
     }
 
@@ -287,6 +419,10 @@ const ScannerPanel = ({ onSymbolSelect }) => {
       </CardHeader>
       
       <CardContent className="p-0">
+        <NotificationBanner 
+          notification={notification} 
+          onDismiss={() => setNotification(null)} 
+        />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
           <TabsList className="grid w-full grid-cols-3 mx-4 mb-4">
             <TabsTrigger value="momentum" className="text-xs">
