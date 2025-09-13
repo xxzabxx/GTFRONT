@@ -126,7 +126,7 @@ const TradingViewChart = ({
       const from = to - (30 * 24 * 60 * 60) // 30 days ago
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/market/candles/${symbol}?resolution=${resolution}&days=30`,
+        `${import.meta.env.VITE_API_URL}/api/market/candles?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -141,29 +141,23 @@ const TradingViewChart = ({
 
       const data = await response.json()
       
-      // Check if we have an error response
-      if (data.error) {
-        throw new Error(data.error)
-      }
-      
-      // Check if we have valid data
-      if (!data.success || !data.data || !data.data.c) {
+      if (data.s !== 'ok') {
         throw new Error('No data available for this symbol')
       }
 
-      // Convert backend data to lightweight-charts format
-      const chartData = data.data.c.map((close, index) => ({
-        time: data.data.t[index],
-        open: data.data.o[index],
-        high: data.data.h[index],
-        low: data.data.l[index],
+      // Convert Finnhub data to lightweight-charts format
+      const chartData = data.c.map((close, index) => ({
+        time: data.t[index],
+        open: data.o[index],
+        high: data.h[index],
+        low: data.l[index],
         close: close,
       }))
 
-      const volumeData = data.data.v.map((volume, index) => ({
-        time: data.data.t[index],
+      const volumeData = data.v.map((volume, index) => ({
+        time: data.t[index],
         value: volume,
-        color: data.data.c[index] >= data.data.o[index] ? '#10b981' : '#ef4444',
+        color: data.c[index] >= data.o[index] ? '#10b981' : '#ef4444',
       }))
 
       // Update chart series
