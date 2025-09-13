@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import ScannerPanel from '../components/ScannerPanel'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +24,7 @@ const DashboardPage = () => {
   const { user, hasPermission, getTierInfo } = useAuth()
   const [marketStatus, setMarketStatus] = useState('OPEN') // OPEN, CLOSED, PRE_MARKET, AFTER_HOURS
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [selectedSymbol, setSelectedSymbol] = useState(null)
 
   const tierInfo = getTierInfo()
 
@@ -33,6 +35,12 @@ const DashboardPage = () => {
 
     return () => clearInterval(timer)
   }, [])
+
+  // Handle symbol selection from scanner
+  const handleSymbolSelect = (symbol) => {
+    setSelectedSymbol(symbol)
+    console.log('Selected symbol:', symbol) // For debugging
+  }
 
   // Demo data for scanners
   const scannerResults = [
@@ -94,61 +102,7 @@ const DashboardPage = () => {
         
         {/* Left Panel - Scanners & Watchlists (25%) */}
         <div className="lg:col-span-1 space-y-4">
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2">
-                <Search className="w-5 h-5" />
-                <span>Live Scanners</span>
-              </CardTitle>
-              <CardDescription>
-                Real-time momentum opportunities
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Tabs defaultValue="momentum" className="h-full">
-                <TabsList className="grid w-full grid-cols-2 mx-4 mb-4">
-                  <TabsTrigger value="momentum">Momentum</TabsTrigger>
-                  <TabsTrigger value="gappers">Gappers</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="momentum" className="px-4 pb-4 space-y-2">
-                  {scannerResults.map((stock, index) => (
-                    <div 
-                      key={index}
-                      className="p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <span className="font-semibold text-sm">{stock.symbol}</span>
-                          <div className="text-xs text-muted-foreground">
-                            Float: {stock.float}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-sm">${stock.price}</div>
-                          <div className={`text-xs ${stock.change > 0 ? 'trading-green' : 'trading-red'}`}>
-                            {stock.change > 0 ? '+' : ''}{stock.change}%
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Vol: {stock.volume}</span>
-                        <span>{stock.catalyst}</span>
-                      </div>
-                    </div>
-                  ))}
-                </TabsContent>
-                
-                <TabsContent value="gappers" className="px-4 pb-4">
-                  <div className="text-center text-muted-foreground py-8">
-                    <TrendingUp className="w-8 h-8 mx-auto mb-2" />
-                    <p>Pre-market gappers will appear here</p>
-                    <p className="text-xs">Available during pre-market hours</p>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+          <ScannerPanel onSymbolSelect={handleSymbolSelect} />
         </div>
 
         {/* Center Panel - Charts (50%) */}
@@ -167,7 +121,14 @@ const DashboardPage = () => {
               <div className="text-center text-muted-foreground">
                 <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <h3 className="text-lg font-semibold mb-2">Chart Area</h3>
-                <p className="mb-4">Select a symbol from the scanner to view its chart</p>
+                {selectedSymbol ? (
+                  <div className="mb-4">
+                    <p className="text-lg font-semibold text-primary mb-2">{selectedSymbol}</p>
+                    <p className="text-sm">Chart integration coming soon</p>
+                  </div>
+                ) : (
+                  <p className="mb-4">Select a symbol from the scanner to view its chart</p>
+                )}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="p-3 border border-border rounded-lg">
                     <div className="font-semibold">Real-time Data</div>
