@@ -38,20 +38,27 @@ const ContactPage = () => {
     setSubmitStatus(null)
 
     try {
-      // Create mailto link as fallback
-      const subject = encodeURIComponent(`GrimmTrading Contact: ${formData.subject}`)
-      const body = encodeURIComponent(
-        `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
-      )
-      const mailtoLink = `mailto:grimmdaytrading@gmail.com?subject=${subject}&body=${body}`
-      
-      // Open email client
-      window.location.href = mailtoLink
-      
-      setSubmitStatus('success')
-      setFormData({ name: '', email: '', subject: '', message: '' })
+      // Send to backend API
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setSubmitStatus('success')
+        setFormData({ name: '', email: '', subject: '', message: '' })
+      } else {
+        setSubmitStatus('error')
+        console.error('Contact form error:', result.error)
+      }
     } catch (error) {
       setSubmitStatus('error')
+      console.error('Contact form submission error:', error)
     } finally {
       setIsSubmitting(false)
     }
@@ -180,14 +187,14 @@ const ContactPage = () => {
                     {submitStatus === 'success' && (
                       <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
                         <CheckCircle className="w-5 h-5" />
-                        <span>Your email client should open with the message. If not, please try again or check your email settings.</span>
+                        <span>Your message has been sent successfully! We'll get back to you within 24-48 hours.</span>
                       </div>
                     )}
 
                     {submitStatus === 'error' && (
                       <div className="flex items-center gap-2 text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
                         <AlertCircle className="w-5 h-5" />
-                        <span>There was an issue sending your message. Please try again or check your email client settings.</span>
+                        <span>There was an issue sending your message. Please try again or contact us directly.</span>
                       </div>
                     )}
 
