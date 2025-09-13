@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { scannerService } from '../services/scannerService'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import TierBadge from './TierBadge'
+import UpgradeModal from './UpgradeModal'
 import { 
   Search, 
   RefreshCw, 
@@ -19,6 +21,7 @@ import {
   X,
   Volume2
 } from 'lucide-react'
+
 const ScannerPanel = ({ onSymbolSelect }) => {
   const { user, token, getTierInfo } = useAuth()
   const [scannerData, setScannerData] = useState({
@@ -30,8 +33,41 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   const [scannerStatus, setScannerStatus] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [notification, setNotification] = useState(null)
+  const [upgradeModal, setUpgradeModal] = useState({ isOpen: false, feature: null })
 
   const tierInfo = getTierInfo()
+
+  // Tier-based access control
+  const getScannerAccess = (scannerType) => {
+    const tier = tierInfo.tier || 'free'
+    
+    const accessRules = {
+      momentum: {
+        free: { available: true, limited: true, maxResults: 5 },
+        basic: { available: true, limited: false },
+        pro: { available: true, limited: false },
+        premium: { available: true, limited: false }
+      },
+      gappers: {
+        free: { available: false, requiredTier: 'basic' },
+        basic: { available: true, limited: true, maxResults: 10 },
+        pro: { available: true, limited: false },
+        premium: { available: true, limited: false }
+      },
+      low_float: {
+        free: { available: false, requiredTier: 'pro' },
+        basic: { available: false, requiredTier: 'pro' },
+        pro: { available: true, limited: true, maxResults: 15 },
+        premium: { available: true, limited: false }
+      }
+    }
+
+    return accessRules[scannerType]?.[tier] || { available: false, requiredTier: 'premium' }
+  }
+
+  const handleUpgradeClick = (scannerType) => {
+    setUpgradeModal({ isOpen: true, feature: scannerType })
+  }
 
   // Auto-dismiss notifications after 5 seconds
   useEffect(() => {
@@ -293,6 +329,39 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   const ScannerResults = ({ scannerType }) => {
     const data = scannerData[scannerType]
     const status = scannerStatus?.scanners[scannerType]
+    const access = getScannerAccess(scannerType)
+
+    // Check tier-based access first
+    if (!access.available) {
+      return (
+        <div className="text-center py-8">
+          <div className="relative">
+            <Lock className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+            <Crown className="w-6 h-6 absolute -top-1 -right-1 text-yellow-500" />
+          </div>
+          <h3 className="font-semibold mb-2">
+            {scannerType.charAt(0).toUpperCase() + scannerType.slice(1).replace('_', ' ')} Scanner
+          </h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Requires {access.requiredTier.charAt(0).toUpperCase() + access.requiredTier.slice(1)} tier or higher
+          </p>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-xs text-muted-foreground">Current:</span>
+            <TierBadge tier={tierInfo.tier} size="sm" />
+            <span className="text-xs text-muted-foreground">→</span>
+            <TierBadge tier={access.requiredTier} size="sm" />
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            onClick={() => handleUpgradeClick(scannerType)}
+          >
+            <Crown className="w-4 h-4 mr-2" />
+            Upgrade to {access.requiredTier.charAt(0).toUpperCase() + access.requiredTier.slice(1)}
+          </Button>
+        </div>
+      )
+    }
 
     if (!status?.enabled) {
       return (
@@ -300,21 +369,6 @@ const ScannerPanel = ({ onSymbolSelect }) => {
           <Lock className="w-8 h-8 mx-auto mb-2" />
           <p>Scanner temporarily disabled</p>
           <p className="text-xs">Check back later</p>
-        </div>
-      )
-    }
-
-    if (!status?.available) {
-      return (
-        <div className="text-center py-8">
-          <Crown className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-          <p className="font-semibold mb-2">Premium Feature</p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Upgrade to access {scannerType.replace('_', ' ')} scanner
-          </p>
-          <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600">
-            Upgrade Now
-          </Button>
         </div>
       )
     }
@@ -391,70 +445,117 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Search className="w-5 h-5" />
-            <CardTitle>Live Scanners</CardTitle>
+    <>
+      <Card className="h-full">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Search className="w-5 h-5" />
+              <CardTitle>Live Scanners</CardTitle>
+              <TierBadge tier={tierInfo.tier} size="sm" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={!scannerStatus?.scanners[activeTab]?.enabled || scannerData[activeTab]?.loading}
+              >
+                <RefreshCw className={`w-4 h-4 ${scannerData[activeTab]?.loading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Badge variant="outline" className="text-xs">
+                <Activity className="w-3 h-3 mr-1" />
+                {autoRefresh ? 'Live' : 'Manual'}
+              </Badge>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={!scannerStatus?.scanners[activeTab]?.enabled || scannerData[activeTab]?.loading}
-            >
-              <RefreshCw className={`w-4 h-4 ${scannerData[activeTab]?.loading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Badge variant="outline" className="text-xs">
-              <Activity className="w-3 h-3 mr-1" />
-              {autoRefresh ? 'Live' : 'Manual'}
-            </Badge>
-          </div>
-        </div>
-        <CardDescription>
-          Ross Cameron momentum strategies • {tierInfo.name} tier
-        </CardDescription>
-      </CardHeader>
+          <CardDescription className="flex items-center justify-between">
+            <span>Ross Cameron momentum strategies</span>
+            {tierInfo.tier === 'free' && (
+              <Button 
+                variant="link" 
+                size="sm" 
+                className="h-auto p-0 text-xs text-primary"
+                onClick={() => handleUpgradeClick('premium')}
+              >
+                Upgrade for full access →
+              </Button>
+            )}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <NotificationBanner 
+            notification={notification} 
+            onDismiss={() => setNotification(null)} 
+          />
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+            <TabsList className="grid w-full grid-cols-3 mx-4 mb-4">
+              <TabsTrigger value="momentum" className="text-xs">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                Momentum
+                {getScannerAccess('momentum').limited && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    Limited
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="gappers" 
+                className={`text-xs ${!getScannerAccess('gappers').available ? 'opacity-60' : ''}`}
+              >
+                <Zap className="w-3 h-3 mr-1" />
+                Gappers
+                {!getScannerAccess('gappers').available && (
+                  <Lock className="w-3 h-3 ml-1 text-muted-foreground" />
+                )}
+                {getScannerAccess('gappers').available && getScannerAccess('gappers').limited && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    Limited
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="low_float" 
+                className={`text-xs ${!getScannerAccess('low_float').available ? 'opacity-60' : ''}`}
+              >
+                <Volume2 className="w-3 h-3 mr-1" />
+                Low Float
+                {!getScannerAccess('low_float').available && (
+                  <Lock className="w-3 h-3 ml-1 text-muted-foreground" />
+                )}
+                {getScannerAccess('low_float').available && getScannerAccess('low_float').limited && (
+                  <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                    Limited
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="px-4 pb-4">
+              <TabsContent value="momentum" className="mt-0">
+                <ScannerResults scannerType="momentum" />
+              </TabsContent>
+              
+              <TabsContent value="gappers" className="mt-0">
+                <ScannerResults scannerType="gappers" />
+              </TabsContent>
+              
+              <TabsContent value="low_float" className="mt-0">
+                <ScannerResults scannerType="low_float" />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </CardContent>
+      </Card>
       
-      <CardContent className="p-0">
-        <NotificationBanner 
-          notification={notification} 
-          onDismiss={() => setNotification(null)} 
-        />
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-          <TabsList className="grid w-full grid-cols-3 mx-4 mb-4">
-            <TabsTrigger value="momentum" className="text-xs">
-              <TrendingUp className="w-3 h-3 mr-1" />
-              Momentum
-            </TabsTrigger>
-            <TabsTrigger value="gappers" className="text-xs">
-              <Zap className="w-3 h-3 mr-1" />
-              Gappers
-            </TabsTrigger>
-            <TabsTrigger value="low_float" className="text-xs">
-              <Volume2 className="w-3 h-3 mr-1" />
-              Low Float
-            </TabsTrigger>
-          </TabsList>
-          
-          <div className="px-4 pb-4">
-            <TabsContent value="momentum" className="mt-0">
-              <ScannerResults scannerType="momentum" />
-            </TabsContent>
-            
-            <TabsContent value="gappers" className="mt-0">
-              <ScannerResults scannerType="gappers" />
-            </TabsContent>
-            
-            <TabsContent value="low_float" className="mt-0">
-              <ScannerResults scannerType="low_float" />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </CardContent>
-    </Card>
+      <UpgradeModal
+        isOpen={upgradeModal.isOpen}
+        onClose={() => setUpgradeModal({ isOpen: false, feature: null })}
+        currentTier={tierInfo.tier}
+        feature={upgradeModal.feature}
+      />
+    </>
   )
 }
 
