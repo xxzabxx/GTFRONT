@@ -20,7 +20,7 @@ const ResourcesPage = () => {
     {
       title: "Ross Cameron - Warrior Trading",
       description: "Learn momentum day trading strategies from one of the most successful day traders. Comprehensive courses on small cap momentum trading.",
-      url: "https://www.youtube.com/@WarriorTrading",
+      url: "https://www.youtube.com/@DaytradeWarrior",
       type: "YouTube Channel",
       level: "Beginner to Advanced",
       icon: <Video className="w-5 h-5" />
@@ -36,7 +36,7 @@ const ResourcesPage = () => {
     {
       title: "Ricky Gutierrez - TechBud Solutions",
       description: "Technical analysis, swing trading, and day trading education with focus on chart patterns and risk management.",
-      url: "https://www.youtube.com/@TechBudSolutions",
+      url: "https://www.youtube.com/channel/UCtlAFoYl2aWb6pMiHCctQHA",
       type: "YouTube Channel",
       level: "Beginner to Intermediate",
       icon: <Video className="w-5 h-5" />
@@ -52,22 +52,6 @@ const ResourcesPage = () => {
   ]
 
   const tradingTools = [
-    {
-      title: "TradingView",
-      description: "Professional charting platform with advanced technical analysis tools, social trading features, and real-time data.",
-      url: "https://www.tradingview.com",
-      type: "Charting Platform",
-      pricing: "Free / $14.95+ per month",
-      icon: <BarChart3 className="w-5 h-5" />
-    },
-    {
-      title: "Finviz",
-      description: "Stock screener and market visualization tools. Great for finding stocks that meet specific criteria.",
-      url: "https://finviz.com",
-      type: "Stock Screener",
-      pricing: "Free / $24.96 per month",
-      icon: <TrendingUp className="w-5 h-5" />
-    },
     {
       title: "SEC EDGAR Database",
       description: "Official SEC database for company filings, 10-K reports, and insider trading information.",
