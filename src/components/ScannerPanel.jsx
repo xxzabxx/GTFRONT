@@ -32,7 +32,7 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   const [activeTab, setActiveTab] = useState('momentum')
   const [scannerStatus, setScannerStatus] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const [refreshInterval, setRefreshInterval] = useState(30) // seconds
+  const [refreshInterval, setRefreshInterval] = useState(300) // 5 minutes to reduce API calls
   const [lastRefresh, setLastRefresh] = useState(null)
   const [nextRefresh, setNextRefresh] = useState(null)
   const [notification, setNotification] = useState(null)
