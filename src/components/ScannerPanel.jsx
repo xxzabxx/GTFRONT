@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { scannerService } from '../services/scannerService'
+import { getMarketStatus, isMarketOpen } from '../utils/marketHours'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +38,7 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   const [nextRefresh, setNextRefresh] = useState(null)
   const [notification, setNotification] = useState(null)
   const [upgradeModal, setUpgradeModal] = useState({ isOpen: false, feature: null })
+  const [marketStatus, setMarketStatus] = useState(null)
 
   const tierInfo = getTierInfo()
 
@@ -87,40 +89,59 @@ const ScannerPanel = ({ onSymbolSelect }) => {
     fetchScannerStatus()
   }, [])
 
-  // Enhanced auto-refresh logic with countdown
+  // Market hours-aware auto-refresh logic
   useEffect(() => {
+    // Update market status every minute
+    const updateMarketStatus = () => {
+      const status = getMarketStatus()
+      setMarketStatus(status)
+    }
+    
+    updateMarketStatus() // Initial update
+    const marketStatusInterval = setInterval(updateMarketStatus, 60000) // Update every minute
+    
     if (!autoRefresh) {
       setNextRefresh(null)
-      return
+      return () => clearInterval(marketStatusInterval)
     }
 
     const refreshData = () => {
-      if (scannerStatus && scannerStatus.scanners[activeTab]?.enabled) {
+      // Only auto-refresh if market is open and scanner is enabled
+      if (marketStatus?.shouldAutoRefresh && scannerStatus && scannerStatus.scanners[activeTab]?.enabled) {
         setLastRefresh(new Date())
         fetchScannerData(activeTab)
       }
     }
 
-    // Initial refresh
-    refreshData()
+    // Initial refresh only if market is open
+    if (marketStatus?.shouldAutoRefresh) {
+      refreshData()
+    }
 
     const interval = setInterval(() => {
-      refreshData()
+      // Check market status before each refresh
+      const currentMarketStatus = getMarketStatus()
+      if (currentMarketStatus.shouldAutoRefresh && scannerStatus && scannerStatus.scanners[activeTab]?.enabled) {
+        refreshData()
+      }
     }, refreshInterval * 1000)
 
-    // Countdown timer for next refresh
+    // Countdown timer for next refresh (only during market hours)
     const countdownInterval = setInterval(() => {
-      if (lastRefresh) {
+      if (lastRefresh && marketStatus?.shouldAutoRefresh) {
         const nextRefreshTime = new Date(lastRefresh.getTime() + refreshInterval * 1000)
         setNextRefresh(nextRefreshTime)
+      } else {
+        setNextRefresh(null)
       }
     }, 1000)
 
     return () => {
       clearInterval(interval)
       clearInterval(countdownInterval)
+      clearInterval(marketStatusInterval)
     }
-  }, [activeTab, autoRefresh, scannerStatus, refreshInterval])
+  }, [activeTab, autoRefresh, scannerStatus, refreshInterval, marketStatus])
 
   // Update lastRefresh when data is fetched
   useEffect(() => {
@@ -266,6 +287,11 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   }
 
   const getCountdownText = () => {
+    // If market is closed, show market status instead of countdown
+    if (!marketStatus?.shouldAutoRefresh) {
+      return marketStatus?.description || 'Market Closed'
+    }
+    
     if (!autoRefresh || !nextRefresh) return null
     
     const now = new Date()
