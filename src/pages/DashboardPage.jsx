@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import ScannerPanel from '../components/ScannerPanel'
+import TradingViewChart from '../components/TradingViewChart'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -107,49 +108,11 @@ const DashboardPage = () => {
 
         {/* Center Panel - Charts (50%) */}
         <div className="lg:col-span-2">
-          <Card className="h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="w-5 h-5" />
-                <span>Charts</span>
-                <Badge variant="outline" className="ml-auto">
-                  TradingView Integration
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="h-full flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">Chart Area</h3>
-                {selectedSymbol ? (
-                  <div className="mb-4">
-                    <p className="text-lg font-semibold text-primary mb-2">{selectedSymbol}</p>
-                    <p className="text-sm">Chart integration coming soon</p>
-                  </div>
-                ) : (
-                  <p className="mb-4">Select a symbol from the scanner to view its chart</p>
-                )}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 border border-border rounded-lg">
-                    <div className="font-semibold">Real-time Data</div>
-                    <div className="text-xs">Level 1 & Level 2</div>
-                  </div>
-                  <div className="p-3 border border-border rounded-lg">
-                    <div className="font-semibold">Technical Analysis</div>
-                    <div className="text-xs">50+ Indicators</div>
-                  </div>
-                  <div className="p-3 border border-border rounded-lg">
-                    <div className="font-semibold">Multiple Timeframes</div>
-                    <div className="text-xs">1m to 1D charts</div>
-                  </div>
-                  <div className="p-3 border border-border rounded-lg">
-                    <div className="font-semibold">Drawing Tools</div>
-                    <div className="text-xs">Support & Resistance</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <TradingViewChart 
+            selectedSymbol={selectedSymbol || 'AAPL'}
+            onSymbolChange={setSelectedSymbol}
+            className="h-full"
+          />
         </div>
 
         {/* Right Panel - News & Chat (25%) */}
