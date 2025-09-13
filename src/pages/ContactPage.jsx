@@ -21,7 +21,6 @@ const ContactPage = () => {
     subject: '',
     message: ''
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState(null)
 
   const handleInputChange = (e) => {
@@ -32,36 +31,22 @@ const ContactPage = () => {
     }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitStatus(null)
-
-    try {
-      // Send to backend API
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/contact`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        setSubmitStatus('success')
-        setFormData({ name: '', email: '', subject: '', message: '' })
-      } else {
-        setSubmitStatus('error')
-        console.error('Contact form error:', result.error)
-      }
-    } catch (error) {
-      setSubmitStatus('error')
-      console.error('Contact form submission error:', error)
-    } finally {
-      setIsSubmitting(false)
-    }
+    
+    // Create mailto link with form data
+    const subject = encodeURIComponent(formData.subject || 'Contact from GrimmTrading')
+    const body = encodeURIComponent(
+      `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
+    )
+    const mailtoLink = `mailto:grimmdaytrading@gmail.com?subject=${subject}&body=${body}`
+    
+    // Open email client
+    window.location.href = mailtoLink
+    
+    // Reset form and show success message
+    setFormData({ name: '', email: '', subject: '', message: '' })
+    setSubmitStatus('success')
   }
 
   const faqs = [
@@ -187,7 +172,7 @@ const ContactPage = () => {
                     {submitStatus === 'success' && (
                       <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
                         <CheckCircle className="w-5 h-5" />
-                        <span>Your message has been sent successfully! We'll get back to you within 24-48 hours.</span>
+                        <span>Email client opened! Please send the email to complete your message.</span>
                       </div>
                     )}
 
@@ -200,10 +185,9 @@ const ContactPage = () => {
 
                     <Button 
                       type="submit" 
-                      className="w-full" 
-                      disabled={isSubmitting}
+                      className="w-full"
                     >
-                      {isSubmitting ? 'Sending...' : 'Send Message'}
+                      Send Message
                     </Button>
                   </form>
                 </CardContent>
