@@ -32,6 +32,9 @@ const ScannerPanel = ({ onSymbolSelect }) => {
   const [activeTab, setActiveTab] = useState('momentum')
   const [scannerStatus, setScannerStatus] = useState(null)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [refreshInterval, setRefreshInterval] = useState(30) // seconds
+  const [lastRefresh, setLastRefresh] = useState(null)
+  const [nextRefresh, setNextRefresh] = useState(null)
   const [notification, setNotification] = useState(null)
   const [upgradeModal, setUpgradeModal] = useState({ isOpen: false, feature: null })
 
@@ -84,18 +87,48 @@ const ScannerPanel = ({ onSymbolSelect }) => {
     fetchScannerStatus()
   }, [])
 
-  // Auto-refresh logic
+  // Enhanced auto-refresh logic with countdown
   useEffect(() => {
-    if (!autoRefresh) return
+    if (!autoRefresh) {
+      setNextRefresh(null)
+      return
+    }
 
-    const interval = setInterval(() => {
+    const refreshData = () => {
       if (scannerStatus && scannerStatus.scanners[activeTab]?.enabled) {
+        setLastRefresh(new Date())
         fetchScannerData(activeTab)
       }
-    }, 30000) // Refresh every 30 seconds
+    }
 
-    return () => clearInterval(interval)
-  }, [activeTab, autoRefresh, scannerStatus])
+    // Initial refresh
+    refreshData()
+
+    const interval = setInterval(() => {
+      refreshData()
+    }, refreshInterval * 1000)
+
+    // Countdown timer for next refresh
+    const countdownInterval = setInterval(() => {
+      if (lastRefresh) {
+        const nextRefreshTime = new Date(lastRefresh.getTime() + refreshInterval * 1000)
+        setNextRefresh(nextRefreshTime)
+      }
+    }, 1000)
+
+    return () => {
+      clearInterval(interval)
+      clearInterval(countdownInterval)
+    }
+  }, [activeTab, autoRefresh, scannerStatus, refreshInterval])
+
+  // Update lastRefresh when data is fetched
+  useEffect(() => {
+    const currentData = scannerData[activeTab]
+    if (currentData && currentData.lastUpdate && !currentData.loading) {
+      setLastRefresh(currentData.lastUpdate)
+    }
+  }, [scannerData, activeTab])
 
   const fetchScannerStatus = async () => {
     try {
@@ -207,6 +240,50 @@ const ScannerPanel = ({ onSymbolSelect }) => {
     if (onSymbolSelect) {
       onSymbolSelect(symbol)
     }
+  }
+
+  const toggleAutoRefresh = () => {
+    setAutoRefresh(!autoRefresh)
+    if (!autoRefresh) {
+      setNotification({
+        type: 'info',
+        message: `Auto-refresh enabled (${refreshInterval}s intervals)`
+      })
+    } else {
+      setNotification({
+        type: 'info',
+        message: 'Auto-refresh disabled'
+      })
+    }
+  }
+
+  const handleRefreshIntervalChange = (newInterval) => {
+    setRefreshInterval(newInterval)
+    setNotification({
+      type: 'info',
+      message: `Refresh interval updated to ${newInterval} seconds`
+    })
+  }
+
+  const getCountdownText = () => {
+    if (!autoRefresh || !nextRefresh) return null
+    
+    const now = new Date()
+    const diff = Math.max(0, Math.ceil((nextRefresh - now) / 1000))
+    
+    if (diff === 0) return 'Refreshing...'
+    return `${diff}s`
+  }
+
+  const getLastUpdateText = () => {
+    if (!lastRefresh) return 'Never'
+    
+    const now = new Date()
+    const diff = Math.floor((now - lastRefresh) / 1000)
+    
+    if (diff < 60) return `${diff}s ago`
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    return `${Math.floor(diff / 3600)}h ago`
   }
 
   const formatNumber = (num) => {
@@ -434,9 +511,23 @@ const ScannerPanel = ({ onSymbolSelect }) => {
         
         {data.lastUpdate && (
           <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-            Last updated: {data.lastUpdate.toLocaleTimeString()}
-            {data.count && data.limit && (
-              <span className="ml-2">• Showing {data.count}/{data.limit} results</span>
+            <div className="flex items-center justify-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <div className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <span>{autoRefresh ? 'Live' : 'Manual'}</span>
+              </div>
+              <span>Updated: {data.lastUpdate.toLocaleTimeString()}</span>
+              {data.count !== undefined && data.limit && (
+                <span>Results: {data.count}/{data.limit}</span>
+              )}
+              {autoRefresh && getCountdownText() && (
+                <span>Next: {getCountdownText()}</span>
+              )}
+            </div>
+            {data.criteria && (
+              <div className="mt-1 text-xs text-muted-foreground/70">
+                {data.criteria.description}
+              </div>
             )}
           </div>
         )}
@@ -455,18 +546,52 @@ const ScannerPanel = ({ onSymbolSelect }) => {
               <TierBadge tier={tierInfo.tier} size="sm" />
             </div>
             <div className="flex items-center space-x-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleRefresh}
-                disabled={!scannerStatus?.scanners[activeTab]?.enabled || scannerData[activeTab]?.loading}
-              >
-                <RefreshCw className={`w-4 h-4 ${scannerData[activeTab]?.loading ? 'animate-spin' : ''}`} />
-              </Button>
-              <Badge variant="outline" className="text-xs">
-                <Activity className="w-3 h-3 mr-1" />
-                {autoRefresh ? 'Live' : 'Manual'}
-              </Badge>
+              <div className="flex items-center space-x-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRefresh}
+                  disabled={!scannerStatus?.scanners[activeTab]?.enabled || scannerData[activeTab]?.loading}
+                  className="px-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${scannerData[activeTab]?.loading ? 'animate-spin' : ''}`} />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant={autoRefresh ? "default" : "outline"}
+                  onClick={toggleAutoRefresh}
+                  className="px-2"
+                >
+                  <Activity className="w-3 h-3" />
+                </Button>
+                
+                <select
+                  value={refreshInterval}
+                  onChange={(e) => handleRefreshIntervalChange(Number(e.target.value))}
+                  className="text-xs bg-background border border-border rounded px-2 py-1 h-8"
+                  disabled={!autoRefresh}
+                >
+                  <option value={15}>15s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>1m</option>
+                  <option value={120}>2m</option>
+                  <option value={300}>5m</option>
+                </select>
+              </div>
+              
+              <div className="flex flex-col items-end text-xs text-muted-foreground">
+                <div className="flex items-center space-x-1">
+                  <span>Last:</span>
+                  <span>{getLastUpdateText()}</span>
+                </div>
+                {autoRefresh && getCountdownText() && (
+                  <div className="flex items-center space-x-1">
+                    <span>Next:</span>
+                    <span className="font-mono">{getCountdownText()}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <CardDescription className="flex items-center justify-between">
