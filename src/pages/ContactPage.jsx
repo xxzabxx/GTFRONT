@@ -9,7 +9,8 @@ import {
   MessageSquare, 
   Clock, 
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen
 } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
 
@@ -56,30 +57,6 @@ const ContactPage = () => {
     }
   }
 
-  const contactMethods = [
-    {
-      icon: <Mail className="w-6 h-6" />,
-      title: "Email Support",
-      description: "Get help with your account, billing, or technical issues",
-      contact: "grimmdaytrading@gmail.com",
-      responseTime: "Usually within 24 hours"
-    },
-    {
-      icon: <MessageSquare className="w-6 h-6" />,
-      title: "General Inquiries",
-      description: "Questions about features, partnerships, or feedback",
-      contact: "grimmdaytrading@gmail.com",
-      responseTime: "Usually within 48 hours"
-    },
-    {
-      icon: <Clock className="w-6 h-6" />,
-      title: "Support Hours",
-      description: "We're here to help during market hours and beyond",
-      contact: "Monday - Friday, 4 AM - 8 PM ET",
-      responseTime: "Extended hours support"
-    }
-  ]
-
   const faqs = [
     {
       question: "How do I reset my password?",
@@ -96,6 +73,14 @@ const ContactPage = () => {
     {
       question: "Is my trading data secure?",
       answer: "Yes, we use bank-level encryption and security measures. Your data is never shared with third parties and is protected by industry standards."
+    },
+    {
+      question: "What are your support hours?",
+      answer: "We provide support Monday through Friday, 4 AM - 8 PM ET, covering extended market hours. We typically respond within 24-48 hours."
+    },
+    {
+      question: "How do I cancel my subscription?",
+      answer: "You can cancel your subscription anytime from your account settings. You'll continue to have access until the end of your billing period."
     }
   ]
 
@@ -195,14 +180,14 @@ const ContactPage = () => {
                     {submitStatus === 'success' && (
                       <div className="flex items-center gap-2 text-green-600 bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
                         <CheckCircle className="w-5 h-5" />
-                        <span>Your email client should open with the message. If not, please email us directly at grimmdaytrading@gmail.com</span>
+                        <span>Your email client should open with the message. If not, please try again or check your email settings.</span>
                       </div>
                     )}
 
                     {submitStatus === 'error' && (
                       <div className="flex items-center gap-2 text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
                         <AlertCircle className="w-5 h-5" />
-                        <span>There was an issue. Please email us directly at grimmdaytrading@gmail.com</span>
+                        <span>There was an issue sending your message. Please try again or check your email client settings.</span>
                       </div>
                     )}
 
@@ -218,32 +203,8 @@ const ContactPage = () => {
               </Card>
             </div>
 
-            {/* Contact Information */}
+            {/* Right Side - FAQ and Help */}
             <div className="space-y-8">
-              {/* Contact Methods */}
-              <div>
-                <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
-                <div className="space-y-6">
-                  {contactMethods.map((method, index) => (
-                    <Card key={index} className="border-border/50">
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary flex-shrink-0">
-                            {method.icon}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-lg mb-2">{method.title}</h3>
-                            <p className="text-muted-foreground mb-2">{method.description}</p>
-                            <p className="font-medium">{method.contact}</p>
-                            <p className="text-sm text-muted-foreground">{method.responseTime}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
               {/* FAQ Section */}
               <div>
                 <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
@@ -264,18 +225,18 @@ const ContactPage = () => {
               {/* Additional Help */}
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold text-lg mb-2">Need Immediate Help?</h3>
+                  <h3 className="font-semibold text-lg mb-2">Need More Help?</h3>
                   <p className="text-muted-foreground mb-4">
-                    For urgent technical issues during trading hours, 
-                    email us directly for the fastest response.
+                    Can't find what you're looking for? Use the contact form to send us a message 
+                    and we'll get back to you as soon as possible.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <a 
-                      href="mailto:grimmdaytrading@gmail.com"
+                      href="/resources"
                       className="inline-flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium"
                     >
-                      <Mail className="w-4 h-4 mr-2" />
-                      Email Support
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      Trading Resources
                     </a>
                     <a 
                       href="/pricing"
@@ -283,6 +244,28 @@ const ContactPage = () => {
                     >
                       View Pricing
                     </a>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Response Time Info */}
+              <Card className="border-border/50">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary flex-shrink-0">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2">Response Times</h3>
+                      <p className="text-muted-foreground mb-2">
+                        We're committed to providing fast, helpful support during market hours and beyond.
+                      </p>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="font-medium">Technical Issues:</span> Usually within 24 hours</p>
+                        <p><span className="font-medium">General Questions:</span> Usually within 48 hours</p>
+                        <p><span className="font-medium">Support Hours:</span> Monday - Friday, 4 AM - 8 PM ET</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
