@@ -177,8 +177,9 @@ const AdminPage = () => {
               >
                 <option value="">All Tiers</option>
                 <option value="free">Free</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
                 <option value="premium">Premium</option>
-                <option value="pro">Professional</option>
               </select>
             </div>
             
@@ -349,7 +350,7 @@ const AdminPage = () => {
                     Subscription Tier
                   </label>
                   <div className="space-y-2">
-                    {['free', 'premium', 'pro'].map((tier) => (
+                    {['free', 'basic', 'pro', 'premium'].map((tier) => (
                       <button
                         key={tier}
                         onClick={() => handleTierUpdate(selectedUser.id, tier)}
