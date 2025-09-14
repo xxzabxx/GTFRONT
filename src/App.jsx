@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import './App.css'
 
@@ -34,6 +34,47 @@ function ConditionalFooter() {
   return shouldHideFooter ? null : <Footer />
 }
 
+// Main app content with location-based key for proper re-rendering
+function AppContent({ isDarkMode, setIsDarkMode }) {
+  const location = useLocation()
+  
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      <main className="flex-1">
+        <Routes key={location.pathname}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/resources" element={<ResourcesPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </main>
+      <ConditionalFooter />
+    </div>
+  )
+}
+
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(true) // Default to dark mode for trading
 
@@ -49,39 +90,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-background text-foreground flex flex-col">
-          <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/resources" element={<ResourcesPage />} />
-              <Route path="/terms" element={<TermsPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute>
-                    <AdminPage />
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </main>
-          <ConditionalFooter />
-        </div>
+        <AppContent isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
       </Router>
     </AuthProvider>
   )
