@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { chatService } from '../services/chatService';
+import chatService from '../services/chatService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,7 +90,7 @@ const TradingRoomChat = ({ onStockSymbolClick, className = '' }) => {
     chatService.on('error', handleError);
 
     // Connect to chat
-    chatService.connect(token);
+    chatService.connect(token, import.meta.env.VITE_API_URL);
 
     return () => {
       // Cleanup listeners
