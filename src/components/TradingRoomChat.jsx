@@ -21,7 +21,7 @@ const TradingRoomChat = ({ onStockSymbolClick }) => {
   const inputRef = useRef(null);
 
   // Check if user has premium access
-  const hasPremiumAccess = user?.tier === 'pro' || user?.tier === 'premium';
+  const hasPremiumAccess = user?.subscription_tier === 'pro' || user?.subscription_tier === 'premium';
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
