@@ -117,26 +117,22 @@ const DashboardPage = () => {
         </div>
 
         {/* Right Panel - News & Chat (25%) */}
-        <div className="lg:col-span-1 space-y-4">
-          
+        <div className="lg:col-span-1 space-y-4 h-full overflow-hidden">
           {/* News Section */}
-          <Card className="h-1/2">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2">
-                <Newspaper className="w-5 h-5" />
-                <span>Market News</span>
-              </CardTitle>
+          <Card className="h-1/2 flex flex-col">
+            <CardHeader className="pb-3 flex-shrink-0">
+              <div className="flex items-center space-x-2">
+                <Newspaper className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Market News</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-2 px-4 pb-4">
+            <CardContent className="flex-1 overflow-y-auto">
+              <div className="space-y-3">
                 {newsItems.map((news, index) => (
-                  <div 
-                    key={index}
-                    className="p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  >
-                    <div className="text-sm font-medium mb-1 line-clamp-2">
+                  <div key={index} className="border-b border-border pb-3 last:border-b-0">
+                    <h4 className="text-sm font-medium text-foreground mb-1 line-clamp-2">
                       {news.title}
-                    </div>
+                    </h4>
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{news.source}</span>
                       <span>{news.time}</span>
@@ -149,7 +145,7 @@ const DashboardPage = () => {
 
           {/* Chat Section */}
           <div className="h-1/2">
-            <TradingRoomChat onStockSymbolClick={handleSymbolSelect} />
+            <TradingRoomChat onStockSymbolClick={handleSymbolSelect} className="h-full" />
           </div>
         </div>
       </div>

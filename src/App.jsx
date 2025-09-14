@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import './App.css'
 
 // Pages
@@ -22,6 +22,17 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 // Context
 import { AuthProvider } from './contexts/AuthContext'
+
+// Component to conditionally render footer
+function ConditionalFooter() {
+  const location = useLocation()
+  
+  // Don't show footer on dashboard and admin pages (trading interfaces need full screen)
+  const hideFooterPaths = ['/dashboard', '/admin']
+  const shouldHideFooter = hideFooterPaths.includes(location.pathname)
+  
+  return shouldHideFooter ? null : <Footer />
+}
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(true) // Default to dark mode for trading
@@ -69,7 +80,7 @@ function App() {
               />
             </Routes>
           </main>
-          <Footer />
+          <ConditionalFooter />
         </div>
       </Router>
     </AuthProvider>
