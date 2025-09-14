@@ -184,6 +184,22 @@ const TradingViewChart = ({
     }
   }, [selectedSymbol, timeframe])
 
+  // Listen for stock symbol updates from chat
+  useEffect(() => {
+    const handleChartUpdate = (event) => {
+      const { symbol } = event.detail
+      if (symbol && symbol !== selectedSymbol) {
+        console.log('📈 Updating chart from chat:', symbol)
+        if (onSymbolChange) {
+          onSymbolChange(symbol)
+        }
+      }
+    }
+
+    window.addEventListener('updateChart', handleChartUpdate)
+    return () => window.removeEventListener('updateChart', handleChartUpdate)
+  }, [selectedSymbol, onSymbolChange])
+
   // Handle manual refresh
   const handleRefresh = () => {
     if (selectedSymbol) {

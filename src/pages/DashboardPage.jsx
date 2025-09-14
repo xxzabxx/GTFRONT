@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import ScannerPanel from '../components/ScannerPanel'
 import TradingViewChart from '../components/TradingViewChart'
+import TradingRoomChat from '../components/TradingRoomChat'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -147,37 +148,9 @@ const DashboardPage = () => {
           </Card>
 
           {/* Chat Section */}
-          <Card className="h-1/2">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="w-5 h-5" />
-                <span>Trading Room</span>
-                <Badge variant="outline" className="ml-auto">
-                  <Users className="w-3 h-3 mr-1" />
-                  247
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 flex flex-col h-full">
-              <div className="flex-1 space-y-2 px-4 pb-2 overflow-y-auto">
-                {chatMessages.map((msg, index) => (
-                  <div key={index} className="text-sm">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-semibold text-primary">{msg.user}</span>
-                      <span className="text-xs text-muted-foreground">{msg.time}</span>
-                    </div>
-                    <div className="text-foreground">{msg.message}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 border-t border-border">
-                <div className="text-center text-muted-foreground">
-                  <MessageSquare className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                  <p className="text-xs">Chat functionality coming soon</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="h-1/2">
+            <TradingRoomChat onStockSymbolClick={handleSymbolSelect} />
+          </div>
         </div>
       </div>
     </div>
