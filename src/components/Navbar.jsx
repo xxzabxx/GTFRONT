@@ -15,7 +15,8 @@ import {
   Sun,
   TrendingUp,
   BarChart3,
-  Shield
+  Shield,
+  CreditCard
 } from 'lucide-react'
 
 const Navbar = ({ isDarkMode, setIsDarkMode }) => {
@@ -112,6 +113,12 @@ const Navbar = ({ isDarkMode, setIsDarkMode }) => {
                       <span className="font-medium">{user?.username}</span>
                       <span className="text-xs text-muted-foreground">{user?.email}</span>
                     </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/subscription" className="flex items-center space-x-2">
+                      <CreditCard className="w-4 h-4" />
+                      <span>Subscription</span>
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="flex items-center space-x-2">
                     <Settings className="w-4 h-4" />

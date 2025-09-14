@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { authService } from '../services/authService'
+import { paymentService } from '../services/paymentService'
 
 const AdminPage = () => {
+  const [activeTab, setActiveTab] = useState('users')
   const [users, setUsers] = useState([])
+  const [subscriptions, setSubscriptions] = useState([])
+  const [payments, setPayments] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -15,26 +19,38 @@ const AdminPage = () => {
 
   useEffect(() => {
     loadAdminData()
-  }, [currentPage, searchTerm, tierFilter, statusFilter])
+  }, [currentPage, searchTerm, tierFilter, statusFilter, activeTab])
 
   const loadAdminData = async () => {
     try {
       setLoading(true)
       
-      // Load users with filters
-      const usersResponse = await authService.getAdminUsers({
-        page: currentPage,
-        search: searchTerm,
-        tier: tierFilter,
-        status: statusFilter
-      })
-      
-      setUsers(usersResponse.users)
-      setPagination(usersResponse.pagination)
-      
-      // Load stats
-      const statsResponse = await authService.getAdminStats()
-      setStats(statsResponse)
+      if (activeTab === 'users') {
+        // Load users with filters
+        const usersResponse = await authService.getAdminUsers({
+          page: currentPage,
+          search: searchTerm,
+          tier: tierFilter,
+          status: statusFilter
+        })
+        
+        setUsers(usersResponse.users)
+        setPagination(usersResponse.pagination)
+        
+        // Load stats
+        const statsResponse = await authService.getAdminStats()
+        setStats(statsResponse)
+      } else if (activeTab === 'subscriptions') {
+        // Load subscriptions
+        const subscriptionsResponse = await paymentService.getAdminSubscriptions(currentPage, 20)
+        setSubscriptions(subscriptionsResponse.subscriptions)
+        setPagination(subscriptionsResponse.pagination)
+      } else if (activeTab === 'payments') {
+        // Load payments
+        const paymentsResponse = await paymentService.getAdminPayments(currentPage, 20)
+        setPayments(paymentsResponse.payments)
+        setPagination(paymentsResponse.pagination)
+      }
       
     } catch (err) {
       setError('Failed to load admin data')
@@ -102,7 +118,7 @@ const AdminPage = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-          <p className="text-gray-400">Manage users and platform settings</p>
+          <p className="text-gray-400">Manage users, subscriptions, and platform settings</p>
         </div>
 
         {error && (
@@ -111,44 +127,76 @@ const AdminPage = () => {
           </div>
         )}
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">Total Users</h3>
-              <p className="text-3xl font-bold text-white">{stats.users.total}</p>
-              <p className="text-sm text-green-400 mt-1">
-                {stats.users.recent_signups} new this week
-              </p>
-            </div>
-            
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">Active Users</h3>
-              <p className="text-3xl font-bold text-white">{stats.users.active}</p>
-              <p className="text-sm text-blue-400 mt-1">
-                {stats.users.recent_logins} recent logins
-              </p>
-            </div>
-            
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">Premium Users</h3>
-              <p className="text-3xl font-bold text-white">
-                {stats.tiers.premium + stats.tiers.pro}
-              </p>
-              <p className="text-sm text-purple-400 mt-1">
-                {Math.round(((stats.tiers.premium + stats.tiers.pro) / stats.users.total) * 100)}% conversion
-              </p>
-            </div>
-            
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-400 mb-2">Content</h3>
-              <p className="text-3xl font-bold text-white">{stats.content.watchlists}</p>
-              <p className="text-sm text-yellow-400 mt-1">
-                {stats.content.active_alerts} active alerts
-              </p>
-            </div>
+        {/* Tabs */}
+        <div className="mb-8">
+          <div className="border-b border-gray-700">
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: 'users', label: 'Users', icon: '👥' },
+                { id: 'subscriptions', label: 'Subscriptions', icon: '💳' },
+                { id: 'payments', label: 'Payments', icon: '💰' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id)
+                    setCurrentPage(1)
+                  }}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-400'
+                      : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
+                  }`}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
           </div>
-        )}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'users' && (
+          <>
+            {/* Stats Cards */}
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="bg-gray-800 p-6 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-400 mb-2">Total Users</h3>
+                  <p className="text-3xl font-bold text-white">{stats.users.total}</p>
+                  <p className="text-sm text-green-400 mt-1">
+                    {stats.users.recent_signups} new this week
+                  </p>
+                </div>
+                
+                <div className="bg-gray-800 p-6 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-400 mb-2">Active Users</h3>
+                  <p className="text-3xl font-bold text-white">{stats.users.active}</p>
+                  <p className="text-sm text-blue-400 mt-1">
+                    {stats.users.recent_logins} recent logins
+                  </p>
+                </div>
+                
+                <div className="bg-gray-800 p-6 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-400 mb-2">Premium Users</h3>
+                  <p className="text-3xl font-bold text-white">
+                    {stats.tiers.premium + stats.tiers.pro}
+                  </p>
+                  <p className="text-sm text-purple-400 mt-1">
+                    {Math.round(((stats.tiers.premium + stats.tiers.pro) / stats.users.total) * 100)}% conversion
+                  </p>
+                </div>
+                
+                <div className="bg-gray-800 p-6 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-400 mb-2">Content</h3>
+                  <p className="text-3xl font-bold text-white">{stats.content.watchlists}</p>
+                  <p className="text-sm text-yellow-400 mt-1">
+                    {stats.content.active_alerts} active alerts
+                  </p>
+                </div>
+              </div>
+            )}
 
         {/* Filters */}
         <div className="bg-gray-800 p-6 rounded-lg mb-6">
@@ -394,6 +442,208 @@ const AdminPage = () => {
               </div>
             </div>
           </div>
+        )}
+        
+        {/* Subscriptions Tab */}
+        {activeTab === 'subscriptions' && (
+          <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold">Subscription Management</h3>
+              <p className="text-gray-400 text-sm">View and manage all user subscriptions</p>
+            </div>
+            
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="text-xl">Loading subscriptions...</div>
+              </div>
+            ) : subscriptions.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Plan
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Current Period
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Created
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {subscriptions.map((subscription) => (
+                      <tr key={subscription.id} className="hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-white">
+                              {subscription.user.username}
+                            </div>
+                            <div className="text-sm text-gray-400">
+                              {subscription.user.email}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                            {paymentService.getTierDisplay(subscription.tier)} - {paymentService.getBillingIntervalDisplay(subscription.billing_interval)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            subscription.status === 'active' ? 'bg-green-100 text-green-800' :
+                            subscription.status === 'canceled' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {paymentService.getStatusDisplay(subscription.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                          {paymentService.formatCurrency(subscription.amount, subscription.currency)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {paymentService.formatDate(subscription.current_period_start)} - {paymentService.formatDate(subscription.current_period_end)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {paymentService.formatDate(subscription.created_at)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="text-gray-400">No subscriptions found</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Payments Tab */}
+        {activeTab === 'payments' && (
+          <div className="bg-gray-800 rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold">Payment History</h3>
+              <p className="text-gray-400 text-sm">View all payment transactions</p>
+            </div>
+            
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="text-xl">Loading payments...</div>
+              </div>
+            ) : payments.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Description
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Payment Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        Method
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700">
+                    {payments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-white">
+                              {payment.user.username}
+                            </div>
+                            <div className="text-sm text-gray-400">
+                              {payment.user.email}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-white">
+                            {payment.description}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                          {paymentService.formatCurrency(payment.amount, payment.currency)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            payment.status === 'succeeded' ? 'bg-green-100 text-green-800' :
+                            payment.status === 'failed' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {payment.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                          {paymentService.formatDateTime(payment.paid_at || payment.created_at)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 capitalize">
+                          {payment.payment_method || 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="text-gray-400">No payments found</div>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Pagination */}
+        {pagination && pagination.pages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-400">
+              Showing {((pagination.page - 1) * pagination.per_page) + 1} to {Math.min(pagination.page * pagination.per_page, pagination.total)} of {pagination.total} results
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={!pagination.has_prev}
+                className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 bg-gray-800 text-white rounded">
+                Page {pagination.page} of {pagination.pages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
+                disabled={!pagination.has_next}
+                className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-600"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+        </>
         )}
       </div>
     </div>

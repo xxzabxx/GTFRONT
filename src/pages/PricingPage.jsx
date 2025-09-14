@@ -1,7 +1,10 @@
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { 
   CheckCircle, 
   X, 
@@ -9,16 +12,93 @@ import {
   DollarSign,
   Zap,
   Crown,
-  Star
+  Star,
+  Loader2
 } from 'lucide-react'
 import { Helmet } from 'react-helmet-async'
+import { useAuth } from '@/contexts/AuthContext'
+import { paymentService } from '@/services/paymentService'
+import { toast } from 'sonner'
 
 const PricingPage = () => {
+  const { user } = useAuth()
+  const [isAnnual, setIsAnnual] = useState(false)
+  const [pricing, setPricing] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [processingPlan, setProcessingPlan] = useState(null)
+
+  // Load pricing from backend
+  useEffect(() => {
+    const loadPricing = async () => {
+      try {
+        const pricingData = await paymentService.getPricing()
+        setPricing(pricingData)
+      } catch (error) {
+        console.error('Failed to load pricing:', error)
+        toast.error('Failed to load pricing information')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPricing()
+  }, [])
+
+  // Handle subscription purchase
+  const handleSubscribe = async (tier, billingInterval) => {
+    if (!user) {
+      toast.error('Please log in to subscribe')
+      return
+    }
+
+    setProcessingPlan(`${tier}-${billingInterval}`)
+    
+    try {
+      const successUrl = `${window.location.origin}/subscription/success`
+      const cancelUrl = `${window.location.origin}/pricing`
+      
+      const { checkout_url } = await paymentService.createCheckoutSession(
+        tier,
+        billingInterval,
+        successUrl,
+        cancelUrl
+      )
+      
+      // Redirect to Stripe checkout
+      window.location.href = checkout_url
+    } catch (error) {
+      console.error('Failed to create checkout session:', error)
+      toast.error(error.message || 'Failed to start checkout process')
+      setProcessingPlan(null)
+    }
+  }
+
+  // Get price for display
+  const getPrice = (tier, billingInterval) => {
+    if (!pricing || !pricing[tier] || !pricing[tier][billingInterval]) {
+      return { amount: 0, price_id: null }
+    }
+    return pricing[tier][billingInterval]
+  }
+
+  // Calculate savings for annual billing
+  const calculateSavings = (tier) => {
+    if (!pricing || !pricing[tier]) return 0
+    
+    const monthly = pricing[tier].monthly?.amount || 0
+    const yearly = pricing[tier].yearly?.amount || 0
+    
+    if (monthly === 0 || yearly === 0) return 0
+    
+    const monthlyAnnual = monthly * 12
+    const savings = ((monthlyAnnual - yearly) / monthlyAnnual) * 100
+    return Math.round(savings)
+  }
+
   const pricingPlans = [
     {
+      id: "free",
       name: "Free",
-      price: "$0",
-      period: "forever",
       description: "Perfect for getting started with momentum trading",
       features: [
         "Momentum scanner (5 results)",
@@ -33,109 +113,82 @@ const PricingPage = () => {
         "No mobile app",
         "Basic support only"
       ],
-      cta: "Start Free",
-      ctaLink: "/register",
       popular: false,
       icon: <Zap className="w-6 h-6" />
     },
     {
+      id: "basic",
       name: "Basic",
-      price: "$29",
-      period: "month",
       description: "Essential tools for active day traders",
       features: [
         "Unlimited momentum scanner",
         "Gappers scanner",
         "Advanced TradingView charts",
         "Pre-market scanning (4 AM ET)",
+        "Real-time alerts",
+        "Mobile app access",
         "Priority email support",
-        "Trading community access",
-        "Market news integration"
+        "Trading room chat"
       ],
       limitations: [
         "No low float scanner",
-        "No real-time alerts",
-        "No mobile app"
+        "No API access",
+        "No custom indicators"
       ],
-      cta: "Start 7-Day Trial",
-      ctaLink: "/register?plan=basic",
       popular: true,
       icon: <Star className="w-6 h-6" />
     },
     {
+      id: "pro",
       name: "Pro",
-      price: "$59",
-      period: "month",
-      description: "Advanced features for serious traders",
+      description: "Advanced features for professional traders",
       features: [
-        "All Basic features",
+        "Everything in Basic",
         "Low float scanner",
-        "Real-time push alerts",
-        "Mobile app access",
-        "Extended hours scanning",
+        "Advanced filtering options",
         "Custom watchlists",
-        "Advanced filtering",
-        "Priority chat support"
+        "API access (limited)",
+        "Custom indicators",
+        "Advanced alerts",
+        "Phone support"
       ],
       limitations: [
-        "No custom scanners",
-        "No API access"
+        "Limited API calls",
+        "No white-label options"
       ],
-      cta: "Start 7-Day Trial",
-      ctaLink: "/register?plan=pro",
       popular: false,
       icon: <Crown className="w-6 h-6" />
     },
     {
+      id: "premium",
       name: "Premium",
-      price: "$99",
-      period: "month",
-      description: "Complete trading solution with personal coaching",
+      description: "Complete trading suite for institutions",
       features: [
-        "All Pro features",
-        "Custom scanner creation",
-        "API access for automation",
-        "1-on-1 monthly coaching call",
-        "Advanced analytics dashboard",
+        "Everything in Pro",
+        "Unlimited API access",
         "White-label options",
-        "Phone support",
-        "Early access to new features"
+        "Custom integrations",
+        "Dedicated account manager",
+        "24/7 phone support",
+        "Custom training sessions",
+        "Priority feature requests"
       ],
       limitations: [],
-      cta: "Start 7-Day Trial",
-      ctaLink: "/register?plan=premium",
       popular: false,
       icon: <Crown className="w-6 h-6" />
     }
   ]
 
-  const faqs = [
-    {
-      question: "Can I change plans anytime?",
-      answer: "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate any billing differences."
-    },
-    {
-      question: "Is there a free trial?",
-      answer: "Yes! All paid plans include a 7-day free trial. No credit card required to start, and you can cancel anytime during the trial period."
-    },
-    {
-      question: "What payment methods do you accept?",
-      answer: "We accept all major credit cards (Visa, MasterCard, American Express) and PayPal. All payments are processed securely through Stripe."
-    },
-    {
-      question: "Can I cancel my subscription?",
-      answer: "Absolutely. You can cancel your subscription at any time from your account settings. You'll continue to have access until the end of your billing period."
-    },
-    {
-      question: "Do you offer annual billing discounts?",
-      answer: "Yes! Save 17% when you choose annual billing. That's like getting 2 months free on any paid plan."
-    },
-    {
-      question: "Is my data secure?",
-      answer: "Yes, we use bank-level encryption and security measures. Your trading data is never shared with third parties and is protected by industry-standard security protocols."
-    }
-  ]
-
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Loading pricing...</span>
+        </div>
+      </div>
+    )
+  }
   return (
     <>
       <Helmet>
@@ -158,6 +211,23 @@ const PricingPage = () => {
               Start free and scale as your trading grows. All plans include our core momentum scanning technology 
               with proven day trading strategies.
             </p>
+            
+            {/* Billing Cycle Toggle */}
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <Label htmlFor="billing-toggle" className={`text-sm ${!isAnnual ? 'font-semibold' : ''}`}>
+                Monthly
+              </Label>
+              <Switch
+                id="billing-toggle"
+                checked={isAnnual}
+                onCheckedChange={setIsAnnual}
+              />
+              <Label htmlFor="billing-toggle" className={`text-sm ${isAnnual ? 'font-semibold' : ''}`}>
+                Annual
+                <Badge variant="secondary" className="ml-2">Save 20%</Badge>
+              </Label>
+            </div>
+            
             <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-primary" />
@@ -176,62 +246,107 @@ const PricingPage = () => {
 
           {/* Pricing Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-            {pricingPlans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : 'border-border/50'}`}>
-                {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">
-                    Most Popular
-                  </Badge>
-                )}
-                <CardHeader className="text-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary mx-auto mb-4">
-                    {plan.icon}
-                  </div>
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <div className="text-3xl font-bold">
-                    {plan.price}
-                    <span className="text-sm font-normal text-muted-foreground">/{plan.period}</span>
-                  </div>
-                  <CardDescription className="text-sm">
-                    {plan.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 mb-6">
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Included:</h4>
-                      <ul className="space-y-2">
-                        {plan.features.map((feature, featureIndex) => (
-                          <li key={featureIndex} className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
+            {pricingPlans.map((plan, index) => {
+              const billingInterval = isAnnual ? 'yearly' : 'monthly'
+              const priceData = getPrice(plan.id, billingInterval)
+              const isProcessing = processingPlan === `${plan.id}-${billingInterval}`
+              const savings = isAnnual ? calculateSavings(plan.id) : 0
+              
+              return (
+                <Card key={index} className={`relative ${plan.popular ? 'border-primary shadow-lg scale-105' : 'border-border/50'}`}>
+                  {plan.popular && (
+                    <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary">
+                      Most Popular
+                    </Badge>
+                  )}
+                  <CardHeader className="text-center">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary mx-auto mb-4">
+                      {plan.icon}
                     </div>
-                    {plan.limitations.length > 0 && (
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <div className="text-3xl font-bold">
+                      {plan.id === 'free' ? (
+                        <>
+                          $0
+                          <span className="text-sm font-normal text-muted-foreground">/forever</span>
+                        </>
+                      ) : (
+                        <>
+                          ${priceData.amount}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            /{isAnnual ? 'year' : 'month'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {isAnnual && savings > 0 && plan.id !== 'free' && (
+                      <div className="text-sm text-green-600 font-medium">
+                        Save {savings}% annually
+                      </div>
+                    )}
+                    <CardDescription className="text-sm">
+                      {plan.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 mb-6">
                       <div>
-                        <h4 className="font-medium text-sm mb-2 text-muted-foreground">Not included:</h4>
+                        <h4 className="font-medium text-sm mb-2">Included:</h4>
                         <ul className="space-y-2">
-                          {plan.limitations.map((limitation, limitIndex) => (
-                            <li key={limitIndex} className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <X className="w-4 h-4 flex-shrink-0" />
-                              <span>{limitation}</span>
+                          {plan.features.map((feature, featureIndex) => (
+                            <li key={featureIndex} className="flex items-center gap-2 text-sm">
+                              <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                              <span>{feature}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
+                      {plan.limitations.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-sm mb-2 text-muted-foreground">Not included:</h4>
+                          <ul className="space-y-2">
+                            {plan.limitations.map((limitation, limitIndex) => (
+                              <li key={limitIndex} className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <X className="w-4 h-4 flex-shrink-0" />
+                                <span>{limitation}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {plan.id === 'free' ? (
+                      <Link to="/register" className="w-full">
+                        <Button className="w-full" variant="outline">
+                          Start Free
+                          <ArrowRight className="ml-2 w-4 h-4" />
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button 
+                        className="w-full" 
+                        variant={plan.popular ? "default" : "outline"}
+                        onClick={() => handleSubscribe(plan.id, billingInterval)}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            Start 7-Day Trial
+                            <ArrowRight className="ml-2 w-4 h-4" />
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </div>
-                  <Link to={plan.ctaLink} className="w-full">
-                    <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
-                      {plan.cta}
-                      <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
 
           {/* Annual Billing Discount */}
