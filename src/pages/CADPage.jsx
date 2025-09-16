@@ -96,7 +96,39 @@ const CADPage = () => {
     }
   };
 
+  // Additional comments state
+  const [additionalComments, setAdditionalComments] = useState('');
+  const [editingComments, setEditingComments] = useState(false);
+
+  const updateAdditionalComments = async (callId) => {
+    try {
+      const response = await fetch(`${API_BASE}/calls/${callId}/additional-comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comments: additionalComments })
+      });
+      
+      if (response.ok) {
+        setEditingComments(false);
+        await loadCalls();
+        const updatedResponse = await fetch(`${API_BASE}/calls`);
+        const updatedData = await updatedResponse.json();
+        const refreshedCall = updatedData.calls.find(c => c.id === callId);
+        if (refreshedCall) {
+          setSelectedCall(refreshedCall);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating additional comments:', error);
+    }
+  };
+
   const addRadioLog = async (callId) => {
+    if (!radioLog.notes.trim()) {
+      alert('Please enter radio log notes');
+      return;
+    }
+    
     try {
       const response = await fetch(`${API_BASE}/calls/${callId}/radio-log`, {
         method: 'POST',
@@ -110,13 +142,12 @@ const CADPage = () => {
           unit: '',
           notes: ''
         });
-        loadCalls();
-        // Update selected call
-        const updatedCall = calls.find(c => c.id === callId);
-        if (updatedCall) {
-          const response = await fetch(`${API_BASE}/calls`);
-          const data = await response.json();
-          const refreshedCall = data.calls.find(c => c.id === callId);
+        // Refresh all calls and update selected call
+        await loadCalls();
+        const updatedResponse = await fetch(`${API_BASE}/calls`);
+        const updatedData = await updatedResponse.json();
+        const refreshedCall = updatedData.calls.find(c => c.id === callId);
+        if (refreshedCall) {
           setSelectedCall(refreshedCall);
         }
       }
@@ -378,10 +409,38 @@ const CADPage = () => {
 
               {/* Additional Comments */}
               <div className="bg-gray-800 p-4 rounded">
-                <h3 className="font-semibold mb-2 text-orange-300">ADDITIONAL COMMENTS</h3>
-                <div className="bg-gray-700 p-3 rounded text-sm min-h-20">
-                  {selectedCall.additional_comments || 'No additional comments'}
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold text-orange-300">ADDITIONAL COMMENTS</h3>
+                  <button
+                    onClick={() => {
+                      setEditingComments(!editingComments);
+                      setAdditionalComments(selectedCall.additional_comments || '');
+                    }}
+                    className="text-sm bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded"
+                  >
+                    {editingComments ? 'Cancel' : 'Edit'}
+                  </button>
                 </div>
+                {editingComments ? (
+                  <div>
+                    <textarea
+                      value={additionalComments}
+                      onChange={(e) => setAdditionalComments(e.target.value)}
+                      className="w-full bg-gray-600 p-3 rounded text-sm min-h-20 mb-2"
+                      placeholder="Enter additional comments..."
+                    />
+                    <button
+                      onClick={() => updateAdditionalComments(selectedCall.id)}
+                      className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm"
+                    >
+                      Save Comments
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-gray-700 p-3 rounded text-sm min-h-20">
+                    {selectedCall.additional_comments || 'No additional comments'}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
