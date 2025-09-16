@@ -29,8 +29,8 @@ import { AuthProvider } from './contexts/AuthContext'
 function ConditionalFooter() {
   const location = useLocation()
   
-  // Don't show footer on dashboard and admin pages (trading interfaces need full screen)
-  const hideFooterPaths = ['/dashboard', '/admin']
+  // Don't show footer on dashboard, admin, and CAD pages
+  const hideFooterPaths = ['/dashboard', '/admin', '/DPSCAD']
   const shouldHideFooter = hideFooterPaths.includes(location.pathname)
   
   return shouldHideFooter ? null : <Footer />
@@ -40,9 +40,13 @@ function ConditionalFooter() {
 function AppContent({ isDarkMode, setIsDarkMode }) {
   const location = useLocation()
   
+  // Don't show navbar on CAD page (emergency system needs to be standalone)
+  const hideNavbarPaths = ['/DPSCAD']
+  const shouldHideNavbar = hideNavbarPaths.includes(location.pathname)
+  
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      {!shouldHideNavbar && <Navbar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />}
       <main className="flex-1">
         <Routes key={location.pathname}>
           <Route path="/" element={<HomePage />} />
