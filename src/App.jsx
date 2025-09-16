@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
 import PricingPage from './pages/PricingPage'
 import SubscriptionPage from './pages/SubscriptionPage'
+import CADPage from './pages/CADPage'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import TermsPage from './pages/TermsPage'
@@ -53,6 +54,7 @@ function AppContent({ isDarkMode, setIsDarkMode }) {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/DPSCAD" element={<CADPage />} />
           <Route 
             path="/subscription" 
             element={
